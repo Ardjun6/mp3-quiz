@@ -30,7 +30,7 @@ This is a Flask-based web application that allows users to create and join a qui
 
    ```sh
    python3 -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   source venv/bin/activate  # On Windows, use `venv\Scripts\activate
 
 3. **pip install -r requirements.txt:**
 
