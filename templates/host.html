@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Quiz</title>
+    <link id="theme-stylesheet" rel="stylesheet" href="{{ url_for('static', filename='light-style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>Host a Quiz</h1>
+    <div id="room-info">
+        <input type="number" id="num-questions" placeholder="Number of Questions" min="1">
+        <button id="create-room">Create Room</button>
+    </div>
+    <div id="quiz-container" style="display: none;">
+        <h2 id="quiz-code"></h2>
+        <button id="start-quiz">Start Quiz</button>
+        <div id="question-container"></div>
+        <div id="controls" style="display: none;">
+            <button id="show-answer">Show Answer</button>
+            <button id="next-question">Next</button>
+        </div>
+        <div id="scores-container" style="display: none;">
+            <h2>Scores</h2>
+            <ul id="scores-list"></ul>
+        </div>
+    </div>
+    <button id="theme-switcher">Switch to Dark Mode</button>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        let currentQuestionIndex = 0;
+        let room = '';
+
+        document.getElementById('create-room').addEventListener('click', () => {
+            const numQuestions = document.getElementById('num-questions').value;
+            socket.emit('create_room', { num_questions: numQuestions });
+        });
+
+        socket.on('room_created', data => {
+            console.log(`Room created: ${data.code}`);
+            room = data.code; // Store the room code
+            document.getElementById('room-info').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            document.getElementById('quiz-code').innerText = `Quiz Code: ${data.code}`;
+        });
+
+        document.getElementById('start-quiz').addEventListener('click', () => {
+            console.log(`Starting quiz in room: ${room}`);
+            const numQuestions = document.getElementById('num-questions').value;
+            socket.emit('start_quiz', { room: room, num_questions: numQuestions });
+        });
+
+        document.getElementById('show-answer').addEventListener('click', () => {
+            socket.emit('next_question', { room: room, show_answer: true });
+        });
+
+        document.getElementById('next-question').addEventListener('click', () => {
+            socket.emit('next_question', { room: room, show_answer: false });
+        });
+
+        socket.on('quiz_started', () => {
+            document.getElementById('start-quiz').style.display = 'none';
+            document.getElementById('controls').style.display = 'block';
+        });
+
+        socket.on('next_question', data => {
+            const container = document.getElementById('question-container');
+            container.innerHTML = '';
+            const question = data.question;
+            const div = document.createElement('div');
+            div.classList.add('question');
+            div.innerHTML = `
+                <audio id="audio" volume="0.5">
+                    <source src="/music/${question.question}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                <form>
+                    <div class="grid-container">
+                        ${question.answers.map((answer, index) => `
+                            <div class="grid-item ${String.fromCharCode(97 + index)}">
+                                <input type="radio" name="answer" value="${answer}" id="${String.fromCharCode(97 + index)}"> 
+                                <label for="${String.fromCharCode(97 + index)}">${String.fromCharCode(97 + index)}. ${cleanFilename(answer)}</label>
+                            </div>
+                        `).join('')}
+                    </div>
+                </form>
+            `;
+            container.appendChild(div);
+            const audio = document.getElementById('audio');
+            audio.addEventListener('loadedmetadata', () => {
+                audio.currentTime = audio.duration / 2;
+                audio.play();
+            });
+            audio.controls = false;
+        });
+
+        socket.on('show_answer', data => {
+            const correctAnswer = cleanFilename(data.correct_answer);
+            const inputs = document.querySelectorAll('input[type="radio"]');
+            inputs.forEach(input => {
+                const label = document.querySelector(`label[for=${input.id}]`);
+                if (cleanFilename(input.value) === correctAnswer) {
+                    label.style.color = 'white';
+                    label.parentElement.style.backgroundColor = 'green';
+                } else {
+                    label.style.color = 'white';
+                    label.parentElement.style.backgroundColor = 'red';
+                }
+            });
+        });
+
+        socket.on('quiz_finished', () => {
+            document.getElementById('controls').style.display = 'none';
+            const scoresContainer = document.getElementById('scores-container');
+            scoresContainer.style.display = 'block';
+            socket.emit('get_scores', { room: room });
+        });
+
+        socket.on('scores', data => {
+            const scoresList = document.getElementById('scores-list');
+            scoresList.innerHTML = '';
+            for (const [user, score] of Object.entries(data.scores)) {
+                const li = document.createElement('li');
+                li.innerText = `User ${user}: ${score}`;
+                scoresList.appendChild(li);
+            }
+        });
+
+        document.getElementById('theme-switcher').addEventListener('click', function() {
+            const stylesheet = document.getElementById('theme-stylesheet');
+            if (stylesheet.getAttribute('href') === '{{ url_for("static", filename="light-style.css") }}') {
+                stylesheet.setAttribute('href', '{{ url_for("static", filename="dark-style.css") }}');
+                this.innerText = 'Switch to Light Mode';
+            } else {
+                stylesheet.setAttribute('href', '{{ url_for("static", filename="light-style.css") }}');
+                this.innerText = 'Switch to Dark Mode';
+            }
+        });
+
+        function cleanFilename(filename) {
+            return filename.replace('.mp3', '').replace(/_/g, ' ');
+        }
+    </script>
+</body>
+</html>
