@@ -25,3 +25,18 @@ This is a Flask-based web application that allows users to create and join a qui
    ```sh
    git clone https://github.com/yourusername/mp3-quiz.git
    cd mp3-quiz
+
+2. **Create a virtual environment and activate it:**
+
+   ```sh
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+
+3. **pip install -r requirements.txt:**
+
+   ```sh
+   pip install -r requirements.txt
+
+
+   
+
