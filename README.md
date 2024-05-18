@@ -18,14 +18,10 @@ This is a Flask-based web application that allows users to create and join a qui
 - Flask-SocketIO
 - werkzeug
 
-## install all requirements just do
-pip install -r requirements.txt
-
-
 ## Installation
 
 1. **Clone the repository**:
 
-   csh
+   ```sh
    git clone https://github.com/yourusername/mp3-quiz.git
    cd mp3-quiz
